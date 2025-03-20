@@ -1,5 +1,8 @@
 package u02
 
+import u03.Sequences.Sequence
+import u03.Sequences.Sequence.{Cons, filter, flatMap, map, sum}
+
 object Modules extends App:
 
   // An ADT: type + module
@@ -24,4 +27,14 @@ object Modules extends App:
     case _ => false
 
   println(isStudent(Student("mario", 2015)))
+
+  def getCoursesOfTeachers(s: Sequence[Person]): Sequence[String] =
+    flatMap(s) {
+      case Teacher(_, course) => Cons(course, Sequence.Nil())
+      case _ => Sequence.Nil()
+    }
+
+  def getTotalNumberOfCourses(s: Sequence[Person]): Int =
+    sum(map(getCoursesOfTeachers(s))(_ => 1))
+    
 end Modules

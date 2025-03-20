@@ -35,7 +35,7 @@ object Sequences: // Essentially, generic linkedlists
      */
     def skip[A](s: Sequence[A])(n: Int): Sequence[A] = s match
       case Cons(_, t) if n > 0 => skip(t)(n - 1)
-      case s => s
+      case _ => s
 
     /*
      * Zip two sequences
@@ -78,35 +78,48 @@ object Sequences: // Essentially, generic linkedlists
      */
     def flatMap[A, B](s: Sequence[A])(mapper: A => Sequence[B]): Sequence[B] = s match
       case Cons(h, t) => concat(mapper(h), flatMap(t)(mapper))
-      case Nil() => Nil()
+      case _ => Nil()
 
     /*
      * Get the minimum element in the sequence
      * E.g., [30, 20, 10] => 10
      * E.g., [10, 1, 30] => 1
      */
-    def min(s: Sequence[Int]): Optional[Int] = ???
+    def min(s: Sequence[Int]): Optional[Int] = s match
+      case Cons(h, Nil()) => Just(h)
+      case Cons(h, Cons(h2, t)) => min(Cons(if (h <= h2) h else h2, t))
+      case _ => Empty()
 
     /*
      * Get the elements at even indices
      * E.g., [10, 20, 30] => [10, 30]
      * E.g., [10, 20, 30, 40] => [10, 30]
      */
-    def evenIndices[A](s: Sequence[A]): Sequence[A] = ???
+    def evenIndices[A](s: Sequence[A]): Sequence[A] = s match
+      case Cons(h, Cons(h2, t)) => Cons(h, evenIndices(t))
+      case s => s
 
     /*
      * Check if the sequence contains the element
      * E.g., [10, 20, 30] => true if elem is 20
      * E.g., [10, 20, 30] => false if elem is 40
      */
-    def contains[A](s: Sequence[A])(elem: A): Boolean = ???
+    def contains[A](s: Sequence[A])(elem: A): Boolean = s match
+      case Cons(h, t) if h == elem => true
+      case Cons(_, t) => contains(t)(elem)
+      case _ => false
 
     /*
      * Remove duplicates from the sequence
      * E.g., [10, 20, 10, 30] => [10, 20, 30]
      * E.g., [10, 20, 30] => [10, 20, 30]
      */
-    def distinct[A](s: Sequence[A]): Sequence[A] = ???
+    def distinct[A](s: Sequence[A]): Sequence[A] =
+      def _din(s: Sequence[A], vals: Sequence[A]): Sequence[A] = s match
+        case Cons(h, t) if contains(vals)(h) => _din(t, vals)
+        case Cons(h, t) if !contains(vals)(h) => Cons(h, _din(t, Cons(h, vals)))
+        case _ => Nil()
+      _din(s, Nil())
 
     /*
      * Group contiguous elements in the sequence
@@ -114,14 +127,30 @@ object Sequences: // Essentially, generic linkedlists
      * E.g., [10, 20, 30] => [[10], [20], [30]]
      * E.g., [10, 20, 20, 30] => [[10], [20, 20], [30]]
      */
-    def group[A](s: Sequence[A]): Sequence[Sequence[A]] = ???
+    def group[A](s: Sequence[A]): Sequence[Sequence[A]] =
+      def _group(s: Sequence[A], group: Sequence[A]): Sequence[Sequence[A]] = s match
+        case Cons(h1, Cons(h2, t)) if h1 == h2 => _group(Cons(h2, t), Cons(h1, group))
+        case Cons(h1, Cons(h2, t)) if h1 != h2 => Cons(Cons(h1, group), _group(Cons(h2, t), Nil()))
+        case Cons(h, Nil()) => Cons(Cons(h, group), Nil())
+        case _ => Nil()
+      _group(s, Nil())
 
     /*
      * Partition the sequence into two sequences based on the predicate
      * E.g., [10, 20, 30] => ([10], [20, 30]) if pred is (_ < 20)
      * E.g., [11, 20, 31] => ([20], [11, 31]) if pred is (_ % 2 == 0)
      */
-    def partition[A](s: Sequence[A])(pred: A => Boolean): (Sequence[A], Sequence[A]) = ???
+    def partition[A](s: Sequence[A])(pred: A => Boolean): (Sequence[A], Sequence[A]) =
+      val a = filter(s)(pred)
+      val b = filter(s)(v => !pred(v))
+      (a, b)
+
+    def foldLeft[A](s: Sequence[A])(default: A)(operator: (A, A) => A): A =
+      @annotation.tailrec
+      def _fleft(s: Sequence[A], acc: A): A = s match
+        case Cons(h, t) => _fleft(t, operator(acc, h))
+        case _ => acc
+      _fleft(s, default)
 
   end Sequence
 end Sequences
@@ -134,3 +163,6 @@ end Sequences
   import Sequence.*
 
   println(sum(map(filter(sequence)(_ >= 20))(_ + 1))) // 21+31 = 52
+
+  val lst = Cons(3, Cons(7, Cons(1, Cons(5, Nil()))))
+  println(foldLeft(lst)(0)(_ - _)) // -16

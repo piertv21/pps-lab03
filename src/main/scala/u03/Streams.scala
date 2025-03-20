@@ -1,5 +1,7 @@
 package u03
 
+import u03.Streams.Stream.fibonacci
+
 object Streams extends App:
 
   import Sequences.*
@@ -48,6 +50,15 @@ object Streams extends App:
       case (Cons(h1, t1), _) => cons(h1(), interleave(t1(), empty()))
       case (_, Cons(h2, t2)) => cons(h2(), interleave(empty(), t2()))
       case _ => empty()
+
+    def fill[A](n: Int)(k: A): Stream[A] = n match
+      case n if n > 0 => cons(k, fill(n - 1)(k))
+      case _ => empty()
+
+    val fibonacci: Stream[Int] =
+      def _fib(prev: Int, cur: Int): Stream[Int] =
+        cons(prev, _fib(cur, prev + cur))
+      _fib(0, 1)
   end Stream
 end Streams
 
@@ -62,3 +73,10 @@ end Streams
 
   lazy val corec: Stream[Int] = Stream.cons(1, corec) // {1,1,1,..}
   println(Stream.toList(Stream.take(corec)(10))) // [1,1,..,1]
+
+  val stream = Stream.iterate(0)( _ + 1)
+  println(Stream.toList(Stream.takeWhile(stream)(_ < 5)))
+
+  println(Stream.toList(Stream.fill(3)("a")))
+
+  println(Stream.toList(Stream.take(fibonacci)(5)))
